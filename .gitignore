@@ -1,0 +1,10 @@
+target/
+node_modules/
+.anchor/
+test-ledger/
+frontend/dist/
+.env
+*.json.bak
+# NUNCA subas tus keypairs
+*-keypair.json
+id.json
