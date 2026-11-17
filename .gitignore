@@ -8,3 +8,4 @@ frontend/dist/
 # NUNCA subas tus keypairs
 *-keypair.json
 id.json
+*.zip

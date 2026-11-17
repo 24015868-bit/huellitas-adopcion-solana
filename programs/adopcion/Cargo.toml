@@ -1,0 +1,21 @@
+[package]
+name = "adopcion"
+version = "0.1.0"
+description = "Portal de adopcion de perros y gatos en Solana"
+edition = "2021"
+rust-version = "1.75"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "adopcion"
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build"]
+
+[dependencies]
+anchor-lang = "=0.30.1"
