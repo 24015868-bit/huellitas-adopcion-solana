@@ -1,0 +1,22 @@
+{
+  "name": "huellitas-agente",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Asistente de consulta en lenguaje natural para el portal de adopcion Huellitas en Casa (solo lectura, Devnet)",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "resumen": "tsx src/index.ts --sin-modelo",
+    "test": "tsx --test tests/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.30.1",
+    "@solana/web3.js": "^1.95.0",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0"
+  }
+}
