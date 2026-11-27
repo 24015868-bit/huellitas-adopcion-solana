@@ -113,6 +113,10 @@ Con la solicitud de "Luna" aún pendiente, el refugio intentó **Dar de baja** y
 - **Cómo se comprueba:** `anchor test --skip-build` (13 casos) y las 6 transacciones reales en Devnet listadas arriba.
 - **Uso de IA:** se utilizó IA como apoyo para escribir y depurar el código; los cambios se revisaron, se entienden y se probaron (pruebas locales y flujo real en Devnet).
 
+## Mejora opcional: asistente de consulta con IA (Taller 1)
+
+La carpeta [`agente/`](agente/) agrega un asistente en lenguaje natural, de solo lectura, que consulta las cuentas de este programa en Devnet (LM Studio + Solana Agent Kit). Es independiente del programa, las pruebas y el frontend de arriba: no los modifica. Instrucciones, evidencias y limitaciones en [`agente/README.md`](agente/README.md).
+
 ## Seguridad
 
 No se versionan llaves privadas: `.gitignore` excluye `*-keypair.json`, `id.json` y `target/`. Las wallets de prueba solo tienen SOL de Devnet.
