@@ -70,12 +70,17 @@ Program ID (Devnet): `ATvb4Msom2jT342BSdzFWzaepTPYxWdsrs1A1EacXUx`. El IDL se re
 
 **Qué sí se ejecutó (automatizado):** `npm run typecheck` sin errores y `npm test` → **10 pruebas pasan**: cálculo (empate, sin pendientes, inconsistencias, sin mascotas), tool contra un RPC simulado con cuentas codificadas con el IDL real, caso **sin registro** (`existe: false` + motivo), `OWNER` inválido, y el bucle completo del agente (modelo simulado que pide la action y responde con los datos devueltos).
 
-**Qué se verificó en Devnet real:** la versión anterior del agente (misma lógica de lectura) se ejecutó contra Devnet el 26/11/2026: 4 mascotas activas de 10 registradas, 4 adopciones, tasa 40 %, Firulais con 1 solicitud pendiente, sin inconsistencias. La versión actual debe repetirse con `npm run prueba` (ver abajo).
+**Verificado en Devnet real (27/11/2026) con esta versión del agente**, por la autora, en Codespaces y en Windows con LM Studio (modelo `qwen/qwen3.5-4b`, servidor local en el puerto 1234):
 
-**Pendiente de verificar por la autora (no se ha ejecutado aquí):**
+1. **Consulta directa sin IA** (`npm run prueba`): `existe: true`, 4 mascotas activas de 10 registradas históricamente, 4 adopciones aprobadas, tasa 40 %, Firulais con 1 solicitud pendiente, sin inconsistencias. Las cifras coinciden con la app.
+   ![Consulta directa](evidencias/1-prueba-directa.png)
+2. **Asistente con IA** (`npm start`): preguntas «¿Cuántas mascotas hay disponibles?», «¿Cuál es la tasa de adopción?» y «¿Cuál es la mascota más solicitada?». Respondió 4 disponibles (3 perros, 1 gato, edad promedio 12 meses, nombres Boni, Milo, Nala y Firulais), tasa de 40 % (4 de 10 históricas) y Firulais con 1 solicitud pendiente, sin empate. Todas coinciden con el JSON de la consulta directa.
+   ![Asistente con IA](evidencias/2-asistente-con-ia.png)
+3. **Caso sin registro**: con `OWNER` de una wallet que no creó refugio (la del adoptante), respondió que el refugio no existe y que se revise la configuración, **sin inventar cifras ni mascotas**.
+   ![Caso sin registro](evidencias/3-sin-registro.png)
 
-- [ ] `npm run prueba` en Devnet real con la versión actual y comparar con la app.
-- [ ] Respuestas del asistente con LM Studio (preguntas como "¿cuántas mascotas hay?", "¿cuál es la tasa de adopción?", "¿cuál es la dirección de mi refugio?") contrastadas con el JSON de `npm run prueba`.
-- [ ] Caso sin registro: `OWNER` con una dirección que no creó refugio → debe responder que no existe, sin cifras.
+**Limitaciones observadas del modelo pequeño (4B):** en la primera respuesta etiquetó «Total de mascotas registradas: 4» cuando 4 son las *activas* (las registradas históricamente son 10, dato que sí usó bien al explicar la tasa); y en el caso sin registro llamó a `OWNER` «propietario del programa» cuando es la autoridad del refugio. Las cifras no se vieron afectadas; la referencia es siempre el JSON calculado por la aplicación.
 
-Para las capturas: **no incluyas `.env`, llaves ni credenciales**. `.gitignore` excluye `.env` y `node_modules/`.
+**Aún no ejecutado:** la pregunta «¿cuál es la dirección de mi refugio?» no se probó con el modelo (la dirección sí aparece en el JSON de la consulta directa).
+
+Las capturas no incluyen `.env`, llaves privadas ni credenciales (solo direcciones públicas). `.gitignore` excluye `.env` y `node_modules/`.
