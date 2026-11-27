@@ -84,3 +84,7 @@ Program ID (Devnet): `ATvb4Msom2jT342BSdzFWzaepTPYxWdsrs1A1EacXUx`. El IDL se re
 **Aún no ejecutado:** la pregunta «¿cuál es la dirección de mi refugio?» no se probó con el modelo (la dirección sí aparece en el JSON de la consulta directa).
 
 Las capturas no incluyen `.env`, llaves privadas ni credenciales (solo direcciones públicas). `.gitignore` excluye `.env` y `node_modules/`.
+
+## Uso de IA
+
+El código del agente se desarrolló con apoyo de Claude (Anthropic). La autora revisó la estructura contra las instrucciones oficiales del taller, instaló y configuró LM Studio, ejecutó las pruebas contra Devnet y contra el modelo local, y contrastó las respuestas del asistente con los datos calculados por la aplicación.
