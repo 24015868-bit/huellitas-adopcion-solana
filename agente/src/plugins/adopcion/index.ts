@@ -1,17 +1,17 @@
-import type { Program, Idl } from "@coral-xyz/anchor";
-import { herramientaResumenAdopcion } from "./tools/resumenAdopcion";
-import { resumenAdopcion } from "./actions/resumenAdopcion";
+import type { SolanaAgentKit } from "solana-agent-kit";
+import { resumenNegocio } from "./tools/resumenNegocio";
+import AdopcionResumenNegocioAction from "./actions/resumenNegocio";
 
-/** Plugin: cada herramienta (tool) tiene su accion (action) con el mismo nombre. */
-export const herramientas = [herramientaResumenAdopcion];
+/** PLUGIN: agrupa los metodos (tools) y las actions que se registran en el agente. */
+const AdopcionPlugin = {
+  name: "adopcion",
+  methods: { resumenNegocio },
+  actions: [AdopcionResumenNegocioAction],
+  initialize(agent: SolanaAgentKit) {
+    Object.entries(this.methods).forEach(([name, fn]) => {
+      if (typeof fn === "function") (this.methods as any)[name] = (fn as any).bind(null, agent);
+    });
+  },
+};
 
-export function crearEjecutor(program: Program<Idl>) {
-  const acciones: Record<string, (args: any) => Promise<unknown>> = {
-    resumen_adopciones: (args) => resumenAdopcion(args, { program }),
-  };
-  return async (nombre: string, args: any): Promise<unknown> => {
-    const accion = acciones[nombre];
-    if (!accion) return { error: `Herramienta desconocida: ${nombre}` };
-    return accion(args ?? {});
-  };
-}
+export default AdopcionPlugin;

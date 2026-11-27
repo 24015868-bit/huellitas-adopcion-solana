@@ -1,73 +1,81 @@
-# 🤖 Agente de consulta — Huellitas en Casa
+# Taller 1 · Asistente de consulta (Solana Agent) — Huellitas en Casa
 
-Asistente que responde **preguntas en lenguaje natural desde la terminal** sobre el estado del portal de adopción, leyendo las cuentas del programa en **Solana Devnet** (`Refugio`, `Mascota`, `Solicitud`).
+Asistente en lenguaje natural, de **solo lectura**, que consulta en **Solana Devnet** las cuentas del portal de adopción (`../programs/adopcion`) y responde con cifras **calculadas por la aplicación en TypeScript**; el modelo solo redacta la respuesta.
 
-Es una forma adicional de consultar las mismas cuentas que muestra el frontend. **No modifica el programa, el frontend ni las pruebas originales**: vive aislado en esta carpeta.
+> Esta carpeta es una mejora **independiente** del proyecto final: no modifica el programa, las pruebas ni el frontend originales. Vive en la rama `feature/agente`.
 
-## Cómo funciona
+## Cómo está construido (modelo del taller)
 
-```
-Pregunta ──▶ Modelo (LM Studio) ──pide──▶ TOOL resumen_adopciones
-                  ▲                              │
-                  │                       ACTION: lee cuentas por RPC
-                  │                       y CALCULA el resumen (código)
-                  └──────── respuesta ◀──────────┘
-```
+| Pieza del taller | En este proyecto |
+|---|---|
+| **LLM** (LM Studio, modelo con *Tool use*; API compatible con Chat Completions) | `ChatOpenAI` apuntando a `LLM_BASE_URL` / `LLM_MODEL` (`src/agent.ts`) |
+| **Tool** (consulta cuentas y calcula) | `src/plugins/adopcion/tools/resumenNegocio.ts` + cálculo puro en `src/lib/calculo.ts` |
+| **Action** (nombre, descripción, esquema `zod`, handler) | `src/plugins/adopcion/actions/resumenNegocio.ts` → `ADOPCION_RESUMEN_NEGOCIO` (esquema vacío `z.object({})`: el refugio sale de `OWNER`, el modelo no manda parámetros) |
+| **Plugin** | `src/plugins/adopcion/index.ts` (registra método + action) |
+| Agente | `SolanaAgentKit` + `createLangchainTools` + `createReactAgent` + `MemorySaver` |
+| Prueba **sin IA** | `src/prueba.ts` (`npm run prueba`) |
 
-- **Los números los calcula el código, no el modelo.** El modelo solo redacta la respuesta con el resultado de la herramienta (temperatura 0).
-- Cada plugin tiene su par **tool + action**: `src/plugins/adopcion/tools/resumenAdopcion.ts` (qué ofrece al modelo) y `src/plugins/adopcion/actions/resumenAdopcion.ts` (qué ejecuta).
-- `calculo.ts` es una función pura y probada: mascotas por estado y especie, solicitudes por estado, tasa de adopción, detalle por mascota y **verificación de consistencia** entre los contadores del programa y las cuentas reales.
-- **Solo lectura y sin llaves:** usa una wallet efímera sin fondos que nunca firma. No hay que poner ninguna llave privada en el `.env`.
+Solo lectura: la identidad del kit es un `Keypair.generate()` efímero, sin fondos y que nunca firma. **No se usa ni se guarda ninguna llave privada.**
 
-## Requisitos
+## Instalación y ejecución
 
-- Node 20 o superior.
-- [LM Studio](https://lmstudio.ai/) con un modelo que tenga la capacidad **Tool use**, y su servidor local activo (*Developer → Start Server*, puerto 1234).
-- El programa desplegado en Devnet (Program ID en el README principal). El agente reutiliza el IDL de `frontend/src/idl/adopcion.json`.
-
-## Uso
+Requiere Node **>= 22.12 y < 25**.
 
 ```bash
 cd agente
 npm install
 cp .env.example .env        # en Windows: copy .env.example .env
-
-npm run resumen             # resumen calculado SIN modelo (no requiere LM Studio)
-npm run resumen -- --json   # el mismo resumen en JSON
-npm start                   # asistente interactivo con LM Studio
-npm start -- --pregunta "¿Cuántas mascotas están disponibles?"
+# completa .env (ver abajo)
+npm run prueba              # 1) consulta directa SIN modelo
+npm start                   # 2) asistente con IA (requiere LM Studio en marcha)
+npm test                    # pruebas automáticas (RPC y modelo simulados)
 ```
 
-> LM Studio corre en tu computadora (`localhost`). Para usar el asistente con el modelo ejecuta el agente **en la misma computadora** (clona el repo y usa `npm start`). `npm run resumen` sí funciona en cualquier entorno, incluido Codespaces, porque solo necesita el RPC de Devnet.
+### Variables de `.env`
 
-Ejemplos de preguntas:
-
-- ¿Cuántas mascotas hay disponibles para adopción?
-- ¿Hay solicitudes pendientes? ¿De qué mascotas?
-- ¿Cuál es la tasa de adopción del refugio?
-- ¿Los contadores del programa coinciden con las cuentas?
-
-## Pruebas
-
-```bash
-cd agente && npm test
-```
-
-9 pruebas automáticas (sin red real):
-
-| Prueba | Qué comprueba |
+| Variable | Qué poner |
 |---|---|
-| Cálculo de cifras | Estados, especies, edad promedio, solicitudes y tasa de adopción |
-| Inconsistencias | Detecta contadores que no coinciden con las cuentas |
-| Sin datos / refugio inexistente | Mensajes claros y tasa nula |
-| Filtro por refugio | Por PDA o por autoridad |
-| Action por RPC | Lee `Refugio`, `Mascota` y `Solicitud` codificadas según el IDL y calcula el resumen |
-| Ciclo del agente | Pregunta → el modelo pide la tool → el código la ejecuta → respuesta; verifica `temperature: 0` y que el prompt declare solo lectura |
-| LM Studio apagado | Error claro que sugiere `npm run resumen` |
-| CLI `--sin-modelo` | Imprime el resumen calculado desde la terminal |
+| `RPC_URL` | `https://api.devnet.solana.com` |
+| `OWNER` | **Dirección pública** de la wallet autoridad que creó el refugio (con la que usas la app). Con ella se deriva la PDA `["refugio", OWNER]` |
+| `LLM_BASE_URL` | `http://localhost:1234/v1` (LM Studio → Developer → *Start Server*) |
+| `LLM_MODEL` | Identificador del modelo cargado en LM Studio (con soporte *Tool use*, p. ej. un Qwen2.5 Instruct) |
+| `LLM_API_KEY` | `lm-studio` en local; si usas una API remota, su credencial (secreto, no se sube) |
+| `PROGRAM_ID` (opcional) | Solo si quieres otro programa distinto al del IDL |
 
-El RPC y el modelo de las pruebas son simulados; la verificación contra Devnet real se hace con `npm run resumen`.
+`NEGOCIO` del taller de ventas no aplica aquí: el negocio se identifica con `OWNER`.
 
-## Aporte funcional
+> **Codespaces vs. LM Studio:** un Codespace no alcanza el `localhost` de tu computadora. `npm run prueba` sí funciona en Codespaces (solo necesita Devnet); el asistente con IA debe correr **en tu computadora** junto a LM Studio, o usar una API remota en `LLM_BASE_URL`.
 
-Nueva operación de consulta integrada al negocio (lectura en lenguaje natural) con una **validación de integridad** que el frontend no ofrece: compara `mascotas_activas` y `solicitudes_pendientes` declarados por el programa contra las cuentas realmente existentes. Se comprueba con `npm test` y con `npm run resumen` sobre Devnet.
+## Qué consulta la tool
+
+1. Deriva la PDA del refugio desde `OWNER` y comprueba si existe. Si no existe devuelve `existe: false` + `motivo` (no inventa datos).
+2. Lee las **mascotas** del refugio (filtro `memcmp` sobre el campo `refugio`) y las **solicitudes** de cada mascota (filtro sobre el campo `mascota`).
+3. Calcula los indicadores en TypeScript.
+
+### Mapa de cuentas
+
+| Cuenta | Semillas de la PDA | Referencia |
+|---|---|---|
+| `Refugio` | `["refugio", autoridad]` | `autoridad` = `OWNER` |
+| `Mascota` | `["mascota", refugio, id u32 LE]` | campo `refugio` |
+| `Solicitud` | `["solicitud", mascota, adoptante]` | campo `mascota` |
+
+Program ID (Devnet): `ATvb4Msom2jT342BSdzFWzaepTPYxWdsrs1A1EacXUx`. El IDL se reutiliza de `../frontend/src/idl/adopcion.json`. Todos los campos numéricos son `u8/u16/u32`, por lo que no hay conversión `BigInt`.
+
+### Indicadores devueltos
+
+`total_mascotas`, `mascotas_por_estado`, `mascotas_por_especie`, `edad_promedio_meses`, `total_solicitudes`, `solicitudes_por_estado` (pendiente/aprobada/rechazada), `tasa_adopcion_pct` (adopciones aprobadas ÷ mascotas registradas históricamente × 100), `mascota_mas_solicitada` (más solicitudes **pendientes**; con empate se listan todas y `empate: true`; sin pendientes no hay ganadora), detalle de cada mascota e `inconsistencias` (contadores del refugio/mascota que no coinciden con las cuentas reales).
+
+## Evidencias
+
+**Qué sí se ejecutó (automatizado):** `npm run typecheck` sin errores y `npm test` → **10 pruebas pasan**: cálculo (empate, sin pendientes, inconsistencias, sin mascotas), tool contra un RPC simulado con cuentas codificadas con el IDL real, caso **sin registro** (`existe: false` + motivo), `OWNER` inválido, y el bucle completo del agente (modelo simulado que pide la action y responde con los datos devueltos).
+
+**Qué se verificó en Devnet real:** la versión anterior del agente (misma lógica de lectura) se ejecutó contra Devnet el 26/11/2026: 4 mascotas activas de 10 registradas, 4 adopciones, tasa 40 %, Firulais con 1 solicitud pendiente, sin inconsistencias. La versión actual debe repetirse con `npm run prueba` (ver abajo).
+
+**Pendiente de verificar por la autora (no se ha ejecutado aquí):**
+
+- [ ] `npm run prueba` en Devnet real con la versión actual y comparar con la app.
+- [ ] Respuestas del asistente con LM Studio (preguntas como "¿cuántas mascotas hay?", "¿cuál es la tasa de adopción?", "¿cuál es la dirección de mi refugio?") contrastadas con el JSON de `npm run prueba`.
+- [ ] Caso sin registro: `OWNER` con una dirección que no creó refugio → debe responder que no existe, sin cifras.
+
+Para las capturas: **no incluyas `.env`, llaves ni credenciales**. `.gitignore` excluye `.env` y `node_modules/`.
